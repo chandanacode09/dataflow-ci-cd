@@ -1,9 +1,10 @@
 """
-Sample Apache Beam Dataflow Pipeline
-This pipeline reads text data, processes it, and writes the results.
+Shakespeare Word Count Pipeline - BigQuery Source
+This pipeline reads Shakespeare text from BigQuery, processes word counts, and writes results.
 """
 import apache_beam as beam
-from apache_beam.options.pipeline_options import PipelineOptions, StandardOptions
+from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.io.gcp.bigquery import ReadFromBigQuery
 import argparse
 import logging
 
@@ -15,12 +16,16 @@ class WordExtractingDoFn(beam.DoFn):
         """Returns an iterator over the words of this element.
 
         Args:
-            element: the element being processed
+            element: BigQuery row dict with 'word' field
 
         Returns:
-            The processed element.
+            The processed element (word).
         """
-        return element.split()
+        # BigQuery row is a dict, extract the word field
+        word = element.get('word', '')
+        if word:
+            return [word.lower()]
+        return []
 
 
 class FormatResultFn(beam.DoFn):
@@ -44,10 +49,10 @@ def run(argv=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--input',
-        dest='input',
-        default='gs://dataflow-samples/shakespeare/kinglear.txt',
-        help='Input file to process.'
+        '--bq-table',
+        dest='bq_table',
+        default='bigquery-public-data:samples.shakespeare',
+        help='BigQuery table to read from (project:dataset.table format).'
     )
     parser.add_argument(
         '--output',
@@ -64,13 +69,20 @@ def run(argv=None):
     # Run the pipeline
     with beam.Pipeline(options=pipeline_options) as p:
 
-        # Read the text file or input
-        lines = p | 'Read' >> beam.io.ReadFromText(known_args.input)
+        # Read from BigQuery
+        # The shakespeare table has columns: word, word_count, corpus, corpus_date
+        lines = (
+            p
+            | 'ReadFromBigQuery' >> ReadFromBigQuery(
+                table=known_args.bq_table,
+                selected_fields='word'
+            )
+        )
 
-        # Count the occurrences of each word
+        # Count the occurrences of each word across all plays
         counts = (
             lines
-            | 'Split' >> beam.ParDo(WordExtractingDoFn())
+            | 'ExtractWords' >> beam.ParDo(WordExtractingDoFn())
             | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
             | 'GroupAndSum' >> beam.CombinePerKey(sum)
         )

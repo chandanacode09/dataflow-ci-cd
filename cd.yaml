@@ -1,5 +1,5 @@
-# Cloud Build CD Pipeline for Dataflow Project
-# This pipeline deploys the Dataflow job to Google Cloud
+# Cloud Build CD Pipeline for Dataflow Monorepo
+# This pipeline deploys multiple Dataflow jobs to Google Cloud
 # Triggered manually or on merges to main branch
 
 substitutions:
@@ -13,53 +13,109 @@ substitutions:
   _SUBNETWORK: 'regions/us-central1/subnetworks/default'
 
 steps:
-  # Step 1: Install dependencies
+  # ==================== Shakespeare WordCount Pipeline ====================
+  # Step 1a: Install dependencies for Shakespeare pipeline
   - name: 'python:3.9'
-    id: 'install-dependencies'
+    id: 'install-deps-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'pip'
     args: ['install', '-r', 'requirements.txt', '--user']
 
-  # Step 2: Run CI checks before deployment
+  # Step 2a: Run pre-deployment checks for Shakespeare pipeline
   - name: 'python:3.9'
-    id: 'pre-deployment-checks'
+    id: 'check-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'python'
     args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
-    waitFor: ['install-dependencies']
+    waitFor: ['install-deps-shakespeare']
 
-  # Step 3: Deploy to Dataflow
+  # Step 3a: Deploy Shakespeare pipeline to Dataflow
   - name: 'python:3.9'
-    id: 'deploy-dataflow'
+    id: 'deploy-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'python'
     args:
       - 'main.py'
       - '--runner=DataflowRunner'
       - '--project=${_PROJECT_ID}'
       - '--region=${_REGION}'
-      - '--temp_location=${_TEMP_LOCATION}'
-      - '--staging_location=${_STAGING_LOCATION}'
-      - '--output=${_OUTPUT_LOCATION}/wordcount'
+      - '--temp_location=${_TEMP_LOCATION}/shakespeare'
+      - '--staging_location=${_STAGING_LOCATION}/shakespeare'
+      - '--output=${_OUTPUT_LOCATION}/shakespeare/wordcount'
       - '--service_account_email=${_SERVICE_ACCOUNT}'
       - '--network=${_NETWORK}'
       - '--subnetwork=${_SUBNETWORK}'
-      - '--job_name=dataflow-sample-${SHORT_SHA}'
+      - '--job_name=shakespeare-wordcount-${SHORT_SHA}'
       - '--setup_file=./setup.py'
       - '--save_main_session'
-    waitFor: ['pre-deployment-checks']
+    waitFor: ['check-shakespeare']
     env:
       - 'GOOGLE_CLOUD_PROJECT=${_PROJECT_ID}'
 
-  # Step 4: Verify deployment
+  # Step 4a: Verify Shakespeare deployment
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'verify-deployment'
+    id: 'verify-shakespeare'
     entrypoint: 'gcloud'
     args:
       - 'dataflow'
       - 'jobs'
       - 'list'
       - '--region=${_REGION}'
-      - '--filter=name:dataflow-sample-${SHORT_SHA}'
+      - '--filter=name:shakespeare-wordcount-${SHORT_SHA}'
       - '--format=table(id,name,type,state)'
-    waitFor: ['deploy-dataflow']
+    waitFor: ['deploy-shakespeare']
+
+  # ==================== USA Names Stats Pipeline ====================
+  # Step 1b: Install dependencies for USA Names pipeline
+  - name: 'python:3.9'
+    id: 'install-deps-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'pip'
+    args: ['install', '-r', 'requirements.txt', '--user']
+
+  # Step 2b: Run pre-deployment checks for USA Names pipeline
+  - name: 'python:3.9'
+    id: 'check-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
+    waitFor: ['install-deps-usa-names']
+
+  # Step 3b: Deploy USA Names pipeline to Dataflow
+  - name: 'python:3.9'
+    id: 'deploy-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args:
+      - 'main.py'
+      - '--runner=DataflowRunner'
+      - '--project=${_PROJECT_ID}'
+      - '--region=${_REGION}'
+      - '--temp_location=${_TEMP_LOCATION}/usa-names'
+      - '--staging_location=${_STAGING_LOCATION}/usa-names'
+      - '--output=${_OUTPUT_LOCATION}/usa-names/stats'
+      - '--service_account_email=${_SERVICE_ACCOUNT}'
+      - '--network=${_NETWORK}'
+      - '--subnetwork=${_SUBNETWORK}'
+      - '--job_name=usa-names-stats-${SHORT_SHA}'
+      - '--setup_file=./setup.py'
+      - '--save_main_session'
+    waitFor: ['check-usa-names']
+    env:
+      - 'GOOGLE_CLOUD_PROJECT=${_PROJECT_ID}'
+
+  # Step 4b: Verify USA Names deployment
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'verify-usa-names'
+    entrypoint: 'gcloud'
+    args:
+      - 'dataflow'
+      - 'jobs'
+      - 'list'
+      - '--region=${_REGION}'
+      - '--filter=name:usa-names-stats-${SHORT_SHA}'
+      - '--format=table(id,name,type,state)'
+    waitFor: ['deploy-usa-names']
 
 # Cloud Build options
 options:

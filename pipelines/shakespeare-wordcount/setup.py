@@ -1,16 +1,16 @@
-"""Setup file for the Dataflow pipeline package."""
+"""Setup file for the Shakespeare WordCount Dataflow pipeline package."""
 
 import setuptools
 
 REQUIRED_PACKAGES = [
     'apache-beam[gcp]==2.53.0',
-    'google-cloud-storage==2.14.0',
+    'google-cloud-bigquery==3.14.0',
 ]
 
 setuptools.setup(
-    name='dataflow-sample-pipeline',
+    name='shakespeare-wordcount-pipeline',
     version='0.1.0',
-    description='Sample Dataflow pipeline with CI/CD',
+    description='Shakespeare WordCount Dataflow pipeline reading from BigQuery',
     author='Your Name',
     author_email='your.email@example.com',
     install_requires=REQUIRED_PACKAGES,

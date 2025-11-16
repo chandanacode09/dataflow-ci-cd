@@ -1,4 +1,4 @@
-"""Unit tests for the Dataflow pipeline."""
+"""Unit tests for the Shakespeare WordCount Dataflow pipeline."""
 
 import unittest
 import apache_beam as beam
@@ -16,29 +16,57 @@ from main import WordExtractingDoFn, FormatResultFn
 class TestWordExtractingDoFn(unittest.TestCase):
     """Test cases for WordExtractingDoFn."""
 
-    def test_word_extraction(self):
-        """Test that words are correctly extracted from a line."""
+    def test_word_extraction_from_bigquery_row(self):
+        """Test that words are correctly extracted from BigQuery row."""
         with TestPipeline() as p:
-            input_line = "Hello world this is a test"
-            expected_output = ["Hello", "world", "this", "is", "a", "test"]
+            input_row = {'word': 'Hello'}
+            expected_output = ['hello']
 
             output = (
                 p
-                | beam.Create([input_line])
+                | beam.Create([input_row])
                 | beam.ParDo(WordExtractingDoFn())
             )
 
             assert_that(output, equal_to(expected_output))
 
-    def test_empty_line(self):
-        """Test that empty lines are handled correctly."""
+    def test_word_extraction_lowercase(self):
+        """Test that words are converted to lowercase."""
         with TestPipeline() as p:
-            input_line = ""
-            expected_output = [""]
+            input_row = {'word': 'HELLO'}
+            expected_output = ['hello']
 
             output = (
                 p
-                | beam.Create([input_line])
+                | beam.Create([input_row])
+                | beam.ParDo(WordExtractingDoFn())
+            )
+
+            assert_that(output, equal_to(expected_output))
+
+    def test_empty_word(self):
+        """Test that empty words are handled correctly."""
+        with TestPipeline() as p:
+            input_row = {'word': ''}
+            expected_output = []
+
+            output = (
+                p
+                | beam.Create([input_row])
+                | beam.ParDo(WordExtractingDoFn())
+            )
+
+            assert_that(output, equal_to(expected_output))
+
+    def test_missing_word_field(self):
+        """Test that missing word field is handled correctly."""
+        with TestPipeline() as p:
+            input_row = {'other_field': 'value'}
+            expected_output = []
+
+            output = (
+                p
+                | beam.Create([input_row])
                 | beam.ParDo(WordExtractingDoFn())
             )
 
@@ -69,13 +97,19 @@ class TestWordCountPipeline(unittest.TestCase):
     def test_word_count_integration(self):
         """Test the complete word count pipeline."""
         with TestPipeline() as p:
-            input_lines = ["hello world", "hello beam", "world"]
+            input_rows = [
+                {'word': 'hello'},
+                {'word': 'world'},
+                {'word': 'hello'},
+                {'word': 'beam'},
+                {'word': 'world'}
+            ]
             expected_output = ["beam: 1", "hello: 2", "world: 2"]
 
             output = (
                 p
-                | beam.Create(input_lines)
-                | 'Split' >> beam.ParDo(WordExtractingDoFn())
+                | beam.Create(input_rows)
+                | 'ExtractWords' >> beam.ParDo(WordExtractingDoFn())
                 | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
                 | 'GroupAndSum' >> beam.CombinePerKey(sum)
                 | 'Format' >> beam.ParDo(FormatResultFn())
