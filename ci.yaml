@@ -1,0 +1,46 @@
+# Cloud Build CI Pipeline for Dataflow Project
+# This pipeline runs on pull requests and code pushes
+# It performs code quality checks, linting, and testing
+
+steps:
+  # Step 1: Install dependencies
+  - name: 'python:3.9'
+    id: 'install-dependencies'
+    entrypoint: 'pip'
+    args: ['install', '-r', 'requirements.txt']
+
+  # Step 2: Run code formatting check with Black
+  - name: 'python:3.9'
+    id: 'check-formatting'
+    entrypoint: 'python'
+    args: ['-m', 'black', '--check', '.']
+    waitFor: ['install-dependencies']
+
+  # Step 3: Run linting with flake8
+  - name: 'python:3.9'
+    id: 'lint'
+    entrypoint: 'python'
+    args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
+    waitFor: ['install-dependencies']
+
+  # Step 4: Run unit tests with pytest
+  - name: 'python:3.9'
+    id: 'run-tests'
+    entrypoint: 'python'
+    args: ['-m', 'pytest', 'tests/', '-v', '--cov=.', '--cov-report=term-missing']
+    waitFor: ['install-dependencies']
+
+  # Step 5: Validate pipeline syntax (dry run)
+  - name: 'python:3.9'
+    id: 'validate-pipeline'
+    entrypoint: 'python'
+    args: ['main.py', '--help']
+    waitFor: ['install-dependencies', 'lint', 'run-tests']
+
+# Cloud Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Timeout for the entire build
+timeout: '1200s'
