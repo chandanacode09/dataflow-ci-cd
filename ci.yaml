@@ -1,41 +1,87 @@
-# Cloud Build CI Pipeline for Dataflow Project
+# Cloud Build CI Pipeline for Dataflow Monorepo
 # This pipeline runs on pull requests and code pushes
-# It performs code quality checks, linting, and testing
+# It performs code quality checks, linting, and testing for all pipelines
 
 steps:
-  # Step 1: Install dependencies
+  # ==================== Shakespeare WordCount Pipeline ====================
+  # Step 1a: Install dependencies for Shakespeare pipeline
   - name: 'python:3.9'
-    id: 'install-dependencies'
+    id: 'install-deps-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'pip'
     args: ['install', '-r', 'requirements.txt']
 
-  # Step 2: Run code formatting check with Black
+  # Step 2a: Run code formatting check with Black for Shakespeare pipeline
   - name: 'python:3.9'
-    id: 'check-formatting'
+    id: 'check-formatting-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'python'
     args: ['-m', 'black', '--check', '.']
-    waitFor: ['install-dependencies']
+    waitFor: ['install-deps-shakespeare']
 
-  # Step 3: Run linting with flake8
+  # Step 3a: Run linting with flake8 for Shakespeare pipeline
   - name: 'python:3.9'
-    id: 'lint'
+    id: 'lint-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'python'
     args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
-    waitFor: ['install-dependencies']
+    waitFor: ['install-deps-shakespeare']
 
-  # Step 4: Run unit tests with pytest
+  # Step 4a: Run unit tests for Shakespeare pipeline
   - name: 'python:3.9'
-    id: 'run-tests'
+    id: 'test-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'python'
     args: ['-m', 'pytest', 'tests/', '-v', '--cov=.', '--cov-report=term-missing']
-    waitFor: ['install-dependencies']
+    waitFor: ['install-deps-shakespeare']
 
-  # Step 5: Validate pipeline syntax (dry run)
+  # Step 5a: Validate Shakespeare pipeline syntax
   - name: 'python:3.9'
-    id: 'validate-pipeline'
+    id: 'validate-shakespeare'
+    dir: 'pipelines/shakespeare-wordcount'
     entrypoint: 'python'
     args: ['main.py', '--help']
-    waitFor: ['install-dependencies', 'lint', 'run-tests']
+    waitFor: ['install-deps-shakespeare', 'lint-shakespeare', 'test-shakespeare']
+
+  # ==================== USA Names Stats Pipeline ====================
+  # Step 1b: Install dependencies for USA Names pipeline
+  - name: 'python:3.9'
+    id: 'install-deps-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'pip'
+    args: ['install', '-r', 'requirements.txt']
+
+  # Step 2b: Run code formatting check with Black for USA Names pipeline
+  - name: 'python:3.9'
+    id: 'check-formatting-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args: ['-m', 'black', '--check', '.']
+    waitFor: ['install-deps-usa-names']
+
+  # Step 3b: Run linting with flake8 for USA Names pipeline
+  - name: 'python:3.9'
+    id: 'lint-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
+    waitFor: ['install-deps-usa-names']
+
+  # Step 4b: Run unit tests for USA Names pipeline
+  - name: 'python:3.9'
+    id: 'test-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args: ['-m', 'pytest', 'tests/', '-v', '--cov=.', '--cov-report=term-missing']
+    waitFor: ['install-deps-usa-names']
+
+  # Step 5b: Validate USA Names pipeline syntax
+  - name: 'python:3.9'
+    id: 'validate-usa-names'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args: ['main.py', '--help']
+    waitFor: ['install-deps-usa-names', 'lint-usa-names', 'test-usa-names']
 
 # Cloud Build options
 options:
