@@ -1,0 +1,51 @@
+# Cloud Build CI Pipeline for Shakespeare WordCount Dataflow Pipeline
+# This pipeline runs on pull requests and code pushes
+# It performs code quality checks, linting, and testing
+
+steps:
+  # Step 1: Install dependencies
+  - name: 'python:3.9'
+    id: 'install-deps'
+    dir: 'pipelines/shakespeare-wordcount'
+    entrypoint: 'pip'
+    args: ['install', '-r', 'requirements.txt']
+
+  # Step 2: Run code formatting check with Black
+  - name: 'python:3.9'
+    id: 'check-formatting'
+    dir: 'pipelines/shakespeare-wordcount'
+    entrypoint: 'python'
+    args: ['-m', 'black', '--check', '.']
+    waitFor: ['install-deps']
+
+  # Step 3: Run linting with flake8
+  - name: 'python:3.9'
+    id: 'lint'
+    dir: 'pipelines/shakespeare-wordcount'
+    entrypoint: 'python'
+    args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
+    waitFor: ['install-deps']
+
+  # Step 4: Run unit tests
+  - name: 'python:3.9'
+    id: 'test'
+    dir: 'pipelines/shakespeare-wordcount'
+    entrypoint: 'python'
+    args: ['-m', 'pytest', 'tests/', '-v', '--cov=.', '--cov-report=term-missing']
+    waitFor: ['install-deps']
+
+  # Step 5: Validate pipeline syntax
+  - name: 'python:3.9'
+    id: 'validate'
+    dir: 'pipelines/shakespeare-wordcount'
+    entrypoint: 'python'
+    args: ['main.py', '--help']
+    waitFor: ['install-deps', 'lint', 'test']
+
+# Cloud Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Timeout for the entire build
+timeout: '600s'
