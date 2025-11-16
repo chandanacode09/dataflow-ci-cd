@@ -21,6 +21,8 @@ This project demonstrates a complete CI/CD workflow for multiple Google Cloud Da
 │   │   ├── main.py                 # Pipeline code
 │   │   ├── setup.py                # Package setup
 │   │   ├── requirements.txt        # Dependencies
+│   │   ├── ci.yaml                 # CI configuration for this pipeline
+│   │   ├── cd.yaml                 # CD configuration for this pipeline
 │   │   └── tests/
 │   │       ├── __init__.py
 │   │       └── test_pipeline.py
@@ -28,11 +30,11 @@ This project demonstrates a complete CI/CD workflow for multiple Google Cloud Da
 │       ├── main.py                 # Pipeline code
 │       ├── setup.py                # Package setup
 │       ├── requirements.txt        # Dependencies
+│       ├── ci.yaml                 # CI configuration for this pipeline
+│       ├── cd.yaml                 # CD configuration for this pipeline
 │       └── tests/
 │           ├── __init__.py
 │           └── test_pipeline.py
-├── ci.yaml                         # Cloud Build CI configuration
-├── cd.yaml                         # Cloud Build CD configuration
 ├── .flake8                         # Flake8 linting configuration
 └── README.md                       # This file
 ```
@@ -149,48 +151,86 @@ flake8 main.py
 
 ## CI/CD Setup
 
+Each pipeline has its own independent CI/CD configuration files (`ci.yaml` and `cd.yaml`) in its directory. This allows each pipeline to be built, tested, and deployed independently.
+
 ### 1. Configure Cloud Build Triggers
 
-#### CI Trigger (ci.yaml)
-Create a trigger that runs on pull requests and pushes:
+#### CI Triggers
+Create separate CI triggers for each pipeline:
 
+**Shakespeare WordCount Pipeline:**
 ```bash
 gcloud builds triggers create github \
-  --name="dataflow-ci" \
+  --name="shakespeare-ci" \
   --repo-name="your-repo" \
   --repo-owner="your-username" \
   --branch-pattern=".*" \
-  --build-config="ci.yaml"
+  --build-config="pipelines/shakespeare-wordcount/ci.yaml"
 ```
 
-The CI pipeline performs for **all pipelines**:
-- Dependency installation (per pipeline)
-- Code formatting checks with Black (per pipeline)
-- Linting with Flake8 (per pipeline)
-- Unit tests with Pytest (per pipeline)
-- Pipeline validation (per pipeline)
-
-#### CD Trigger (cd.yaml)
-Create a trigger for deployments (typically on main branch):
-
+**USA Names Stats Pipeline:**
 ```bash
 gcloud builds triggers create github \
-  --name="dataflow-cd" \
+  --name="usa-names-ci" \
+  --repo-name="your-repo" \
+  --repo-owner="your-username" \
+  --branch-pattern=".*" \
+  --build-config="pipelines/usa-names-stats/ci.yaml"
+```
+
+Each CI pipeline performs:
+- Dependency installation
+- Code formatting checks with Black
+- Linting with Flake8
+- Unit tests with Pytest
+- Pipeline validation
+
+#### CD Triggers
+Create separate CD triggers for each pipeline (typically on main branch):
+
+**Shakespeare WordCount Pipeline:**
+```bash
+gcloud builds triggers create github \
+  --name="shakespeare-cd" \
   --repo-name="your-repo" \
   --repo-owner="your-username" \
   --branch-pattern="^main$" \
-  --build-config="cd.yaml"
+  --build-config="pipelines/shakespeare-wordcount/cd.yaml"
 ```
 
-The CD pipeline performs for **all pipelines**:
-- Pre-deployment checks (per pipeline)
-- Dataflow job deployment (shakespeare-wordcount and usa-names-stats)
-- Deployment verification (per pipeline)
+**USA Names Stats Pipeline:**
+```bash
+gcloud builds triggers create github \
+  --name="usa-names-cd" \
+  --repo-name="your-repo" \
+  --repo-owner="your-username" \
+  --branch-pattern="^main$" \
+  --build-config="pipelines/usa-names-stats/cd.yaml"
+```
 
-### 2. Update Substitution Variables in cd.yaml
+Each CD pipeline performs:
+- Pre-deployment checks
+- Dataflow job deployment
+- Deployment verification
 
-Edit `cd.yaml` and replace the following substitution variables:
+### 2. Update Substitution Variables
 
+Edit the `cd.yaml` file in each pipeline directory and replace the following substitution variables:
+
+**For Shakespeare WordCount** (`pipelines/shakespeare-wordcount/cd.yaml`):
+```yaml
+substitutions:
+  _PROJECT_ID: 'your-gcp-project-id'           # Your GCP project ID
+  _REGION: 'us-central1'                       # Preferred region
+  _TEMP_LOCATION: 'gs://your-bucket/temp'      # GCS bucket for temp files
+  _STAGING_LOCATION: 'gs://your-bucket/staging' # GCS bucket for staging
+  _OUTPUT_LOCATION: 'gs://your-bucket/output'  # GCS bucket for output
+  _SERVICE_ACCOUNT: 'dataflow-sa@your-project.iam.gserviceaccount.com'
+  _NETWORK: 'default'                          # VPC network
+  _SUBNETWORK: 'regions/us-central1/subnetworks/default'
+```
+
+**For USA Names Stats** (`pipelines/usa-names-stats/cd.yaml`):
 ```yaml
 substitutions:
   _PROJECT_ID: 'your-gcp-project-id'           # Your GCP project ID
@@ -298,9 +338,34 @@ To add a new pipeline to the monorepo:
    - `requirements.txt` - Dependencies
    - `tests/test_pipeline.py` - Unit tests
 
-3. Update `ci.yaml` to add CI steps for the new pipeline
+3. Create `ci.yaml` for the new pipeline:
+   - Copy from an existing pipeline (e.g., `pipelines/shakespeare-wordcount/ci.yaml`)
+   - Update the `dir` parameter in each step to point to your new pipeline directory
+   - Customize test commands if needed
 
-4. Update `cd.yaml` to add deployment steps for the new pipeline
+4. Create `cd.yaml` for the new pipeline:
+   - Copy from an existing pipeline (e.g., `pipelines/shakespeare-wordcount/cd.yaml`)
+   - Update the `dir` parameter in each step to point to your new pipeline directory
+   - Update job name, paths, and substitution variables as needed
+
+5. Create Cloud Build triggers for the new pipeline:
+   ```bash
+   # CI trigger
+   gcloud builds triggers create github \
+     --name="my-new-pipeline-ci" \
+     --repo-name="your-repo" \
+     --repo-owner="your-username" \
+     --branch-pattern=".*" \
+     --build-config="pipelines/my-new-pipeline/ci.yaml"
+
+   # CD trigger
+   gcloud builds triggers create github \
+     --name="my-new-pipeline-cd" \
+     --repo-name="your-repo" \
+     --repo-owner="your-username" \
+     --branch-pattern="^main$" \
+     --build-config="pipelines/my-new-pipeline/cd.yaml"
+   ```
 
 ### Modify Existing Pipelines
 
@@ -312,7 +377,7 @@ Add test files to the `tests/` directory within each pipeline following pytest c
 
 ### Adjust CI/CD Steps
 
-Modify `ci.yaml` and `cd.yaml` to add or remove build steps. The current configuration processes all pipelines in parallel for efficiency.
+Each pipeline has its own `ci.yaml` and `cd.yaml` files in its directory. Modify these files independently to customize build steps, add new checks, or adjust deployment configurations for each pipeline.
 
 ## Troubleshooting
 

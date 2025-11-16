@@ -1,0 +1,76 @@
+# Cloud Build CD Pipeline for USA Names Stats Dataflow Pipeline
+# This pipeline deploys the Dataflow job to Google Cloud
+# Triggered manually or on merges to main branch
+
+substitutions:
+  _PROJECT_ID: 'your-gcp-project-id'
+  _REGION: 'us-central1'
+  _TEMP_LOCATION: 'gs://your-bucket/temp'
+  _STAGING_LOCATION: 'gs://your-bucket/staging'
+  _OUTPUT_LOCATION: 'gs://your-bucket/output'
+  _SERVICE_ACCOUNT: 'dataflow-sa@your-gcp-project-id.iam.gserviceaccount.com'
+  _NETWORK: 'default'
+  _SUBNETWORK: 'regions/us-central1/subnetworks/default'
+
+steps:
+  # Step 1: Install dependencies
+  - name: 'python:3.9'
+    id: 'install-deps'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'pip'
+    args: ['install', '-r', 'requirements.txt', '--user']
+
+  # Step 2: Run pre-deployment checks
+  - name: 'python:3.9'
+    id: 'check'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args: ['-m', 'flake8', 'main.py', '--max-line-length=100']
+    waitFor: ['install-deps']
+
+  # Step 3: Deploy pipeline to Dataflow
+  - name: 'python:3.9'
+    id: 'deploy'
+    dir: 'pipelines/usa-names-stats'
+    entrypoint: 'python'
+    args:
+      - 'main.py'
+      - '--runner=DataflowRunner'
+      - '--project=${_PROJECT_ID}'
+      - '--region=${_REGION}'
+      - '--temp_location=${_TEMP_LOCATION}/usa-names'
+      - '--staging_location=${_STAGING_LOCATION}/usa-names'
+      - '--output=${_OUTPUT_LOCATION}/usa-names/stats'
+      - '--service_account_email=${_SERVICE_ACCOUNT}'
+      - '--network=${_NETWORK}'
+      - '--subnetwork=${_SUBNETWORK}'
+      - '--job_name=usa-names-stats-${SHORT_SHA}'
+      - '--setup_file=./setup.py'
+      - '--save_main_session'
+    waitFor: ['check']
+    env:
+      - 'GOOGLE_CLOUD_PROJECT=${_PROJECT_ID}'
+
+  # Step 4: Verify deployment
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'verify'
+    entrypoint: 'gcloud'
+    args:
+      - 'dataflow'
+      - 'jobs'
+      - 'list'
+      - '--region=${_REGION}'
+      - '--filter=name:usa-names-stats-${SHORT_SHA}'
+      - '--format=table(id,name,type,state)'
+    waitFor: ['deploy']
+
+# Cloud Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Timeout for the entire build (15 minutes)
+timeout: '900s'
+
+# Available images will be stored in Artifact Registry
+images: []
