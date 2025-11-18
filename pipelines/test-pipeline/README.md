@@ -6,8 +6,8 @@ pipeline
 
 This is a streaming Dataflow pipeline that processes data from BigQuery in real-time.
 
-- **Source**: `test.test_source`
-- **Destination**: `test.processed_test_source`
+- **Source**: `test.test_datasource`
+- **Destination**: `test.processed_test_datasource`
 - **Window Duration**: 60 seconds
 
 ## Running Locally
@@ -15,8 +15,8 @@ This is a streaming Dataflow pipeline that processes data from BigQuery in real-
 ```bash
 python main.py \
   --project axiomatic-robot-458302-r0 \
-  --input_table test.test_source \
-  --output_table test.processed_test_source \
+  --input_table test.test_datasource \
+  --output_table test.processed_test_datasource \
   --window_duration 60
 ```
 
