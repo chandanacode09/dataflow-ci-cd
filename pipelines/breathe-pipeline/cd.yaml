@@ -1,0 +1,57 @@
+# Auto-generated CD configuration for breathe-pipeline
+# This file defines the continuous deployment workflow for streaming pipeline
+
+steps:
+  # Install dependencies
+  - name: 'python:3.9'
+    id: 'install-dependencies'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/breathe-pipeline
+        pip install -r requirements.txt
+
+  # Deploy streaming pipeline to Dataflow
+  - name: 'python:3.9'
+    id: 'deploy-dataflow-streaming'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/breathe-pipeline
+
+        echo "Deploying breathe-pipeline streaming pipeline to Dataflow..."
+
+        python main.py \
+          --runner DataflowRunner \
+          --project axiomatic-robot-458302-r0 \
+          --region us-central1 \
+          --temp_location gs://axiomatic-robot-458302-r0-dataflow-temp/breathe-pipeline/ \
+          --staging_location gs://axiomatic-robot-458302-r0-dataflow-staging/breathe-pipeline/ \
+          --input_table axiomatic-robot-458302-r0:breathe.arxiv \
+          --output_table axiomatic-robot-458302-r0:breathe.processed_breathe_arxiv \
+          --window_duration 60 \
+          --job_name breathe-pipeline-${SHORT_SHA} \
+--max_num_workers 4 \--machine_type n1-standard-2 \--disk_size_gb 50 \          --service_account_email dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com \
+          --streaming \
+          --enable_streaming_engine \
+          --setup_file ./setup.py
+
+# Service account with Dataflow permissions
+serviceAccount: 'dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com'
+
+# Timeout (streaming deployments can take longer)
+timeout: '1800s'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Substitutions (provided by trigger)
+substitutions:
+  _DATASET_ID: 'breathe'
+  _SOURCE_TABLE: 'arxiv'
+  _DEST_TABLE: 'processed_breathe_arxiv'
+  _WINDOW_DURATION: '60'
