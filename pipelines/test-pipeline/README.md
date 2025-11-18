@@ -1,13 +1,13 @@
 # test-pipeline
 
-pipeline
+Streaming Dataflow pipeline: test-pipeline
 
 ## Overview
 
 This is a streaming Dataflow pipeline that processes data from BigQuery in real-time.
 
-- **Source**: `analytics.raw_events`
-- **Destination**: `analytics.processed_events`
+- **Source**: `austin_incidents_1.bbc_news_1`
+- **Destination**: `austin_incidents_1.processed_events`
 - **Window Duration**: 60 seconds
 
 ## Running Locally
@@ -15,8 +15,8 @@ This is a streaming Dataflow pipeline that processes data from BigQuery in real-
 ```bash
 python main.py \
   --project axiomatic-robot-458302-r0 \
-  --input_table analytics.raw_events \
-  --output_table analytics.processed_events \
+  --input_table austin_incidents_1.bbc_news_1 \
+  --output_table austin_incidents_1.processed_events \
   --window_duration 60
 ```
 
