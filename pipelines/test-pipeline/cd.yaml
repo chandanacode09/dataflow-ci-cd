@@ -29,8 +29,8 @@ steps:
           --region us-central1 \
           --temp_location gs://axiomatic-robot-458302-r0-dataflow-temp/test-pipeline/ \
           --staging_location gs://axiomatic-robot-458302-r0-dataflow-staging/test-pipeline/ \
-          --input_table axiomatic-robot-458302-r0:test.test_datasource \
-          --output_table axiomatic-robot-458302-r0:test.processed_test_datasource \
+          --input_table axiomatic-robot-458302-r0:analytics.raw_events \
+          --output_table axiomatic-robot-458302-r0:analytics.processed_events \
           --window_duration 60 \
           --job_name test-pipeline-${SHORT_SHA} \
 --max_num_workers 4 \--machine_type n1-standard-2 \--disk_size_gb 50 \          --service_account_email dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com \
@@ -51,7 +51,7 @@ options:
 
 # Substitutions (provided by trigger)
 substitutions:
-  _DATASET_ID: 'test'
-  _SOURCE_TABLE: 'test_datasource'
-  _DEST_TABLE: 'processed_test_datasource'
+  _DATASET_ID: 'analytics'
+  _SOURCE_TABLE: 'raw_events'
+  _DEST_TABLE: 'processed_events'
   _WINDOW_DURATION: '60'
