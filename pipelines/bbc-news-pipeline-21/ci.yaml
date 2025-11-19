@@ -1,0 +1,68 @@
+# Auto-generated CI configuration for bbc-news-pipeline-21
+# This file defines the continuous integration workflow
+
+steps:
+  # Install dependencies
+  - name: 'python:3.9'
+    id: 'install-dependencies'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/bbc-news-pipeline-21
+        pip install -r requirements.txt
+        pip install pytest flake8 black isort
+
+  # Code formatting check
+  - name: 'python:3.9'
+    id: 'format-check'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/bbc-news-pipeline-21
+        echo "Checking code formatting with black..."
+        black --check --diff .
+        echo "Checking import ordering with isort..."
+        isort --check-only --diff .
+
+  # Linting
+  - name: 'python:3.9'
+    id: 'lint'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/bbc-news-pipeline-21
+        echo "Running flake8 linter..."
+        flake8 . --max-line-length=100 --exclude=venv,build,dist
+
+  # Unit tests
+  - name: 'python:3.9'
+    id: 'test'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/bbc-news-pipeline-21
+        echo "Running unit tests..."
+        pytest tests/ -v --cov=. --cov-report=term-missing
+
+  # Validate pipeline can be compiled
+  - name: 'python:3.9'
+    id: 'validate-pipeline'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/bbc-news-pipeline-21
+        echo "Validating pipeline syntax..."
+        python -m py_compile main.py
+
+# Timeout for the entire build
+timeout: '600s'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
