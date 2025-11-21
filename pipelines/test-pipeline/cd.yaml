@@ -1,0 +1,57 @@
+# Auto-generated CD configuration for test-pipeline
+# This file defines the continuous deployment workflow for streaming pipeline
+
+steps:
+  # Install dependencies
+  - name: 'python:3.9'
+    id: 'install-dependencies'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/test-pipeline
+        pip install -r requirements.txt
+
+  # Deploy streaming pipeline to Dataflow
+  - name: 'python:3.9'
+    id: 'deploy-dataflow-streaming'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd pipelines/test-pipeline
+
+        echo "Deploying test-pipeline streaming pipeline to Dataflow..."
+
+        python main.py \
+          --runner DataflowRunner \
+          --project axiomatic-robot-458302-r0 \
+          --region us-central1 \
+          --temp_location gs://axiomatic-robot-458302-r0-dataflow-temp/test-pipeline/ \
+          --staging_location gs://axiomatic-robot-458302-r0-dataflow-staging/test-pipeline/ \
+          --input_table axiomatic-robot-458302-r0:austin_incidents_1.bbc_news_1 \
+          --output_table axiomatic-robot-458302-r0:austin_incidents_1.processed_events \
+          --window_duration 60 \
+          --job_name test-pipeline-${SHORT_SHA} \
+--max_num_workers 4 \--machine_type n1-standard-2 \--disk_size_gb 50 \          --service_account_email dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com \
+          --streaming \
+          --enable_streaming_engine \
+          --setup_file ./setup.py
+
+# Service account with Dataflow permissions
+serviceAccount: 'dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com'
+
+# Timeout (streaming deployments can take longer)
+timeout: '1800s'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Substitutions (provided by trigger)
+substitutions:
+  _DATASET_ID: 'austin_incidents_1'
+  _SOURCE_TABLE: 'bbc_news_1'
+  _DEST_TABLE: 'processed_events'
+  _WINDOW_DURATION: '60'
