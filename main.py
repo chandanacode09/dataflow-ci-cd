@@ -1,1 +1,1 @@
-Regenerated pipeline code
+Regenerated pipeline code without 'Generated' block
