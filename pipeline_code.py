@@ -1,0 +1,1 @@
+Generated pipeline code for streaming processing
