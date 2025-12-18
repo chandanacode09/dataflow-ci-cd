@@ -2,24 +2,17 @@
 # This file defines the continuous deployment workflow for streaming pipeline
 
 steps:
-  # Install dependencies
-  - name: 'python:3.9'
-    id: 'install-dependencies'
-    entrypoint: bash
-    args:
-      - '-c'
-      - |
-        cd pipelines/test-pipeline
-        pip install -r requirements.txt
-
   # Deploy streaming pipeline to Dataflow
-  - name: 'python:3.9'
+  - name: 'python:3.11'
     id: 'deploy-dataflow-streaming'
     entrypoint: bash
     args:
       - '-c'
       - |
         cd pipelines/test-pipeline
+        
+        # Install dependencies
+        pip install -r requirements.txt
 
         echo "Deploying test-pipeline streaming pipeline to Dataflow..."
 
@@ -29,11 +22,10 @@ steps:
           --region us-central1 \
           --temp_location gs://axiomatic-robot-458302-r0-dataflow-temp/test-pipeline/ \
           --staging_location gs://axiomatic-robot-458302-r0-dataflow-staging/test-pipeline/ \
-          --input_table axiomatic-robot-458302-r0:austin_incidents_1.bbc_news_1 \
-          --output_table axiomatic-robot-458302-r0:austin_incidents_1.processed_events \
+          --input_table axiomatic-robot-458302-r0:test_dataset.source_table \
+          --output_table axiomatic-robot-458302-r0:test_dataset.dest_table \
           --window_duration 60 \
-          --job_name test-pipeline-${SHORT_SHA} \
---max_num_workers 4 \--machine_type n1-standard-2 \--disk_size_gb 50 \          --service_account_email dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com \
+          --job_name test-pipeline-${SHORT_SHA} \          --max_num_workers 4 \          --machine_type e2-standard-2 \          --disk_size_gb 50 \          --service_account_email dataflow-sa@axiomatic-robot-458302-r0.iam.gserviceaccount.com \
           --streaming \
           --enable_streaming_engine \
           --setup_file ./setup.py
@@ -47,11 +39,11 @@ timeout: '1800s'
 # Options
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_8'  # Use E2 machine types (N1 not supported in all regions)
 
 # Substitutions (provided by trigger)
 substitutions:
-  _DATASET_ID: 'austin_incidents_1'
-  _SOURCE_TABLE: 'bbc_news_1'
-  _DEST_TABLE: 'processed_events'
+  _DATASET_ID: 'test_dataset'
+  _SOURCE_TABLE: 'source_table'
+  _DEST_TABLE: 'dest_table'
   _WINDOW_DURATION: '60'
