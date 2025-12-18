@@ -12,7 +12,7 @@ REQUIRED_PACKAGES = [
 setuptools.setup(
     name='test-pipeline',
     version='1.0.0',
-    description='test-pipeline pipeline',
+    description='Test pipeline',
     install_requires=REQUIRED_PACKAGES,
     packages=setuptools.find_packages(),
     python_requires='>=3.7',
