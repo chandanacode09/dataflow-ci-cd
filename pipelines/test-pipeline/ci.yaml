@@ -3,7 +3,7 @@
 
 steps:
   # Install dependencies
-  - name: 'python:3.9'
+  - name: 'python:3.11'
     id: 'install-dependencies'
     entrypoint: bash
     args:
@@ -14,42 +14,46 @@ steps:
         pip install pytest flake8 black isort
 
   # Code formatting check
-  - name: 'python:3.9'
+  - name: 'python:3.11'
     id: 'format-check'
     entrypoint: bash
     args:
       - '-c'
       - |
         cd pipelines/test-pipeline
+        pip install black isort
         echo "Checking code formatting with black..."
         black --check --diff .
         echo "Checking import ordering with isort..."
         isort --check-only --diff .
 
   # Linting
-  - name: 'python:3.9'
+  - name: 'python:3.11'
     id: 'lint'
     entrypoint: bash
     args:
       - '-c'
       - |
         cd pipelines/test-pipeline
+        pip install flake8
         echo "Running flake8 linter..."
         flake8 . --max-line-length=100 --exclude=venv,build,dist
 
   # Unit tests
-  - name: 'python:3.9'
+  - name: 'python:3.11'
     id: 'test'
     entrypoint: bash
     args:
       - '-c'
       - |
         cd pipelines/test-pipeline
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
         echo "Running unit tests..."
         pytest tests/ -v --cov=. --cov-report=term-missing
 
   # Validate pipeline can be compiled
-  - name: 'python:3.9'
+  - name: 'python:3.11'
     id: 'validate-pipeline'
     entrypoint: bash
     args:
@@ -65,4 +69,4 @@ timeout: '600s'
 # Options
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_8'  # Use E2 machine types (N1 not supported in all regions)
